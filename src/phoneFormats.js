@@ -1,5 +1,11 @@
-// For each region, provide a pretty format.  Some regions may have multiple formats, in which case an array can be used.  Each "x" will be replaced with a digit when the number of digits matches the number of "x"s in the format.
-// If no format is found with a correct matching length, a sanitized e164 is returned as a fall-back.
+/**
+ * Display format templates keyed by international region code.
+ *
+ * Each `x` placeholder consumes one digit from an E.164 number. Some regions
+ * expose multiple templates to support different valid number lengths.
+ *
+ * @type {Record<string, string | string[]>}
+ */
 export const PHONE_FORMATS = {
   1: '(xxx) xxx-xxxx', // US, Canada, and NANP regions
   7: '+x xxx xxx-xx-xx', // Russia, Kazakhstan

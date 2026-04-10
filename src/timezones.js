@@ -1,6 +1,11 @@
-// Default timezone for each state, region or province.
-// While some region may have multiple timezones, we set the most common one here as a default.  See STATES_WITH_MULTIPLE_TIMEZONES below for references to exceptions within these regions.
-// Time calculations are only provided for US and Canada.
+/**
+ * Default timezone offset for each supported state, province, or territory.
+ *
+ * Regions with multiple possible offsets use the most common standard-time value
+ * here and override area-code-specific exceptions in `STATES_WITH_MULTIPLE_TIMEZONES`.
+ *
+ * @type {Record<string, string>}
+ */
 export const STATE_TIMEZONES = {
   Alabama: '-06:00',
   Alaska: '-09:00',
@@ -76,8 +81,13 @@ export const STATE_TIMEZONES = {
   'Yukon, Northwest Territories, and Nunavut': '-07:00',
 };
 
-// We refer to STATE_TIMEZONES for the default timezone for each state.
-// This list is for exceptions for area codes within those states.
+/**
+ * Area-code-specific timezone overrides for regions that span multiple offsets.
+ *
+ * Values are either a single override offset or an ordered list of candidate offsets.
+ *
+ * @type {Record<string, Record<string, string | string[]>>}
+ */
 export const STATES_WITH_MULTIPLE_TIMEZONES = {
   Alaska: {
     907: ['-09:00', '-10:00'],

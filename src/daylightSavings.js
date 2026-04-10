@@ -1,3 +1,8 @@
+/**
+ * Regions whose default local time should not be shifted for daylight saving time.
+ *
+ * @type {string[]}
+ */
 export const STATES_THAT_DONT_HAVE_DAYLIGHT_SAVINGS = [
   'Arizona',
   'Hawaii',
@@ -7,8 +12,11 @@ export const STATES_THAT_DONT_HAVE_DAYLIGHT_SAVINGS = [
   'Virgin Islands',
 ];
 
-// Arizona does not follow Daylight Savings, but the Navajo Nation does.  The
-// 928 area code spans both Arizone (no DST) and Navajo Nation lands (DST).
+/**
+ * Area codes whose footprint includes both DST-observing and non-DST-observing subregions.
+ *
+ * @type {Record<string, string>}
+ */
 export const AREA_CODES_WITH_MULTIPLE_DAYLIGHT_SAVINGS = {
   928: 'Arizona',
   236: 'British Columbia',

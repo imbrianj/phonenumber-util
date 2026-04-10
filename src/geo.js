@@ -14,6 +14,12 @@ import {
 } from './daylightSavings.js';
 import { findNumbersInString } from './base.js';
 
+/**
+ * Parses an ISO-style UTC offset string into a signed minute count.
+ *
+ * @param {string} offset - Offset in the format `±HH:MM`.
+ * @returns {number} Signed offset in minutes.
+ */
 function parseOffsetMinutes(offset) {
   const match = String(offset).match(/^([+-]?)(\d{1,2}):(\d{2})$/);
 
@@ -28,10 +34,22 @@ function parseOffsetMinutes(offset) {
   return sign * (hours * 60 + minutes);
 }
 
+/**
+ * Pads a single time component to two digits.
+ *
+ * @param {number} value - Time component to format.
+ * @returns {string} Two-digit string representation.
+ */
 function formatClockValue(value) {
   return String(value).padStart(2, '0');
 }
 
+/**
+ * Converts a signed minute count into an ISO-style UTC offset string.
+ *
+ * @param {number} totalMinutes - Signed offset in minutes.
+ * @returns {string} Offset in the format `±HH:MM`.
+ */
 function formatOffsetFromMinutes(totalMinutes) {
   const sign = totalMinutes < 0 ? '-' : '+';
   const absoluteMinutes = Math.abs(totalMinutes);
@@ -41,6 +59,12 @@ function formatOffsetFromMinutes(totalMinutes) {
   return `${sign}${formatClockValue(hours)}:${formatClockValue(minutes)}`;
 }
 
+/**
+ * Formats a UTC-shifted date as a 24-hour time string without relying on the host timezone.
+ *
+ * @param {Date} localTime - Date already shifted into the target local time.
+ * @returns {string} Time in `HH:MM:SS` format.
+ */
 function formatLocalTime24Hour(localTime) {
   return [
     formatClockValue(localTime.getUTCHours()),
@@ -49,6 +73,12 @@ function formatLocalTime24Hour(localTime) {
   ].join(':');
 }
 
+/**
+ * Formats a UTC-shifted date as a 12-hour clock string without relying on locale defaults.
+ *
+ * @param {Date} localTime - Date already shifted into the target local time.
+ * @returns {string} Time in `h:MM:SS AM/PM` format.
+ */
 function formatLocalTimeReadable(localTime) {
   const hours = localTime.getUTCHours();
   const minutes = formatClockValue(localTime.getUTCMinutes());
@@ -59,10 +89,23 @@ function formatLocalTimeReadable(localTime) {
   return `${readableHour}:${minutes}:${seconds} ${suffix}`;
 }
 
+/**
+ * Shifts a UTC offset by a whole number of hours while preserving minute precision.
+ *
+ * @param {string} offset - Offset in the format `±HH:MM`.
+ * @param {number} hours - Whole hours to add.
+ * @returns {string} Shifted offset in the format `±HH:MM`.
+ */
 function shiftOffsetByHours(offset, hours) {
   return formatOffsetFromMinutes(parseOffsetMinutes(offset) + hours * 60);
 }
 
+/**
+ * Removes duplicate offsets while normalizing them into ISO-style strings.
+ *
+ * @param {string[]} offsets - Candidate offsets.
+ * @returns {string[]} Unique, normalized offsets.
+ */
 function dedupeOffsets(offsets) {
   const seen = new Set();
 
@@ -78,6 +121,15 @@ function dedupeOffsets(offsets) {
   });
 }
 
+/**
+ * Finds the calendar day for an nth weekday occurrence within a UTC month.
+ *
+ * @param {number} year - Full year.
+ * @param {number} monthIndex - Zero-based month index.
+ * @param {number} weekday - UTC weekday where Sunday is `0`.
+ * @param {number} occurrence - Nth occurrence to locate.
+ * @returns {number} Day of month.
+ */
 function nthWeekdayOfMonth(year, monthIndex, weekday, occurrence) {
   const firstDay = new Date(Date.UTC(year, monthIndex, 1)).getUTCDay();
   const dayOffset = (weekday - firstDay + 7) % 7;
@@ -85,10 +137,24 @@ function nthWeekdayOfMonth(year, monthIndex, weekday, occurrence) {
   return 1 + dayOffset + (occurrence - 1) * 7;
 }
 
+/**
+ * Applies a UTC offset to a date and returns a UTC-backed local clock representation.
+ *
+ * @param {string} offset - Offset in the format `±HH:MM`.
+ * @param {Date} date - UTC timestamp to shift.
+ * @returns {Date} Shifted date whose UTC getters reflect the target local time.
+ */
 function getLocalTimeForOffset(offset, date) {
   return new Date(date.getTime() + parseOffsetMinutes(offset) * 60000);
 }
 
+/**
+ * Resolves the baseline timezone offsets for an area code before DST adjustments are applied.
+ *
+ * @param {string} areaCode - NANP area code.
+ * @param {string} stateName - State, province, or territory lookup key.
+ * @returns {string[]} Candidate standard offsets for the area code.
+ */
 function getBaseOffsetsForAreaCode(areaCode, stateName) {
   const stateTimezones = STATES_WITH_MULTIPLE_TIMEZONES[stateName]?.[areaCode];
 
@@ -105,6 +171,14 @@ function getBaseOffsetsForAreaCode(areaCode, stateName) {
     : [];
 }
 
+/**
+ * Builds the possible offsets for an area code at a specific instant, including DST variants.
+ *
+ * @param {string} areaCode - NANP area code.
+ * @param {string} stateName - State, province, or territory lookup key.
+ * @param {Date} date - Instant being evaluated.
+ * @returns {string[]} Candidate offsets ordered from earlier to later local time.
+ */
 function getCandidateOffsets(areaCode, stateName, date) {
   const baseOffsets = getBaseOffsetsForAreaCode(areaCode, stateName);
   const hasMixedDaylightSavings =

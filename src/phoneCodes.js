@@ -1,7 +1,25 @@
-// We have a lot of US / Canada numbers.  Just define them once to avoid redundant code.
+/**
+ * Shared region metadata for US numbers in the NANP table.
+ *
+ * @type {{name: string, code: string, flag: string}}
+ */
 const UNITED_STATES = { name: 'United States', code: 'US', flag: '🇺🇸' };
+
+/**
+ * Shared region metadata for Canadian numbers in the NANP table.
+ *
+ * @type {{name: string, code: string, flag: string}}
+ */
 const CANADA = { name: 'Canada', code: 'CA', flag: '🇨🇦' };
 
+/**
+ * NANP area code metadata keyed by three-digit area code.
+ *
+ * Geographic entries include a `name` and `code` describing the state, province,
+ * or territory. Non-geographic service codes only expose region-level metadata.
+ *
+ * @type {Record<string, {name?: string, code?: string, region: {name: string, code: string, flag?: string}}>}
+ */
 export const AREA_CODES = {
   // Toll Free / Not Geographic
   800: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
@@ -659,6 +677,11 @@ export const AREA_CODES = {
   },
 };
 
+/**
+ * International dialing region metadata keyed by E.164 country or service code.
+ *
+ * @type {Record<string, {name: string, code: string, flag: string}>}
+ */
 export const REGION_CODES = {
   93: { name: 'Afghanistan', code: 'AF', flag: '🇦🇫' },
   355: { name: 'Albania', code: 'AL', flag: '🇦🇱' },

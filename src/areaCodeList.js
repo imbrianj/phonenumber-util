@@ -1,7 +1,11 @@
-// The AREA_CODE_LIST is used in validation of NANP phone numbers.  If a number is passed to `isValidPhoneNumber` that is not found in this array, `false` will be returned.
-// If a new area code is added to this array, it must also be added to the AREA_CODES object in phoneCodes.js.
-// If a new area code is added and covers a region that has multiple timezones, it will need to be added to the STATES_WITH_MULTIPLE_TIMEZONES object in timezones.js.
-// If a new area code is added and covers a region that has portions that do and portions that do not adhere to daylight savings time, it will need to be added to the AREA_CODES_WITH_MULTIPLE_DAYLIGHT_SAVINGS object in daylightSavings.js.
+/**
+ * Allow-list of active NANP area codes used by the validation and parsing helpers.
+ *
+ * If a new area code is added here, it must also be reflected in `AREA_CODES` and,
+ * where applicable, in the timezone and daylight-savings override tables.
+ *
+ * @type {Set<string>}
+ */
 export const AREA_CODE_LIST = new Set([
   '201',
   '202',
