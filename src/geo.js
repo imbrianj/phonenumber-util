@@ -14,6 +14,128 @@ import {
 } from './daylightSavings.js';
 import { findNumbersInString } from './base.js';
 
+function parseOffsetMinutes(offset) {
+  const match = String(offset).match(/^([+-]?)(\d{1,2}):(\d{2})$/);
+
+  if (!match) {
+    return 0;
+  }
+
+  const sign = match[1] === '-' ? -1 : 1;
+  const hours = parseInt(match[2], 10);
+  const minutes = parseInt(match[3], 10);
+
+  return sign * (hours * 60 + minutes);
+}
+
+function formatClockValue(value) {
+  return String(value).padStart(2, '0');
+}
+
+function formatOffsetFromMinutes(totalMinutes) {
+  const sign = totalMinutes < 0 ? '-' : '+';
+  const absoluteMinutes = Math.abs(totalMinutes);
+  const hours = Math.floor(absoluteMinutes / 60);
+  const minutes = absoluteMinutes % 60;
+
+  return `${sign}${formatClockValue(hours)}:${formatClockValue(minutes)}`;
+}
+
+function formatLocalTime24Hour(localTime) {
+  return [
+    formatClockValue(localTime.getUTCHours()),
+    formatClockValue(localTime.getUTCMinutes()),
+    formatClockValue(localTime.getUTCSeconds()),
+  ].join(':');
+}
+
+function formatLocalTimeReadable(localTime) {
+  const hours = localTime.getUTCHours();
+  const minutes = formatClockValue(localTime.getUTCMinutes());
+  const seconds = formatClockValue(localTime.getUTCSeconds());
+  const suffix = hours >= 12 ? 'PM' : 'AM';
+  const readableHour = hours % 12 || 12;
+
+  return `${readableHour}:${minutes}:${seconds} ${suffix}`;
+}
+
+function shiftOffsetByHours(offset, hours) {
+  return formatOffsetFromMinutes(parseOffsetMinutes(offset) + hours * 60);
+}
+
+function dedupeOffsets(offsets) {
+  const seen = new Set();
+
+  return offsets.filter((offset) => {
+    const formattedOffset = formatTimeOffset(offset);
+
+    if (seen.has(formattedOffset)) {
+      return false;
+    }
+
+    seen.add(formattedOffset);
+    return true;
+  });
+}
+
+function nthWeekdayOfMonth(year, monthIndex, weekday, occurrence) {
+  const firstDay = new Date(Date.UTC(year, monthIndex, 1)).getUTCDay();
+  const dayOffset = (weekday - firstDay + 7) % 7;
+
+  return 1 + dayOffset + (occurrence - 1) * 7;
+}
+
+function getLocalTimeForOffset(offset, date) {
+  return new Date(date.getTime() + parseOffsetMinutes(offset) * 60000);
+}
+
+function getBaseOffsetsForAreaCode(areaCode, stateName) {
+  const stateTimezones = STATES_WITH_MULTIPLE_TIMEZONES[stateName]?.[areaCode];
+
+  if (Array.isArray(stateTimezones)) {
+    return stateTimezones.map((offset) => formatTimeOffset(offset));
+  }
+
+  if (stateTimezones) {
+    return [formatTimeOffset(stateTimezones)];
+  }
+
+  return STATE_TIMEZONES[stateName]
+    ? [formatTimeOffset(STATE_TIMEZONES[stateName])]
+    : [];
+}
+
+function getCandidateOffsets(areaCode, stateName, date) {
+  const baseOffsets = getBaseOffsetsForAreaCode(areaCode, stateName);
+  const hasMixedDaylightSavings =
+    !!AREA_CODES_WITH_MULTIPLE_DAYLIGHT_SAVINGS[areaCode];
+  const observesDaylightSavings =
+    !STATES_THAT_DONT_HAVE_DAYLIGHT_SAVINGS.includes(stateName);
+  const standardOffset = baseOffsets[0];
+  const daylightSavingsApplies =
+    (observesDaylightSavings || hasMixedDaylightSavings) &&
+    isDaylightSavingTime(date, standardOffset);
+
+  if (!baseOffsets.length) {
+    return [];
+  }
+
+  if (hasMixedDaylightSavings && daylightSavingsApplies) {
+    return dedupeOffsets([
+      ...baseOffsets.map((offset) => shiftOffsetByHours(offset, 1)),
+      ...baseOffsets,
+    ]);
+  }
+
+  if (observesDaylightSavings && daylightSavingsApplies) {
+    return dedupeOffsets(
+      baseOffsets.map((offset) => shiftOffsetByHours(offset, 1)),
+    );
+  }
+
+  return dedupeOffsets(baseOffsets);
+}
+
 /**
  * Determines whether the given date is within daylight saving time for the local time zone.
  *
@@ -22,9 +144,30 @@ import { findNumbersInString } from './base.js';
  * it indicates that daylight saving time is in effect.
  *
  * @param {Date} [date=new Date()] - The date to check. Defaults to the current date if not provided.
+ * @param {string} [standardOffset] - Optional standard UTC offset for North American DST-aware calculations.
  * @returns {boolean} - Returns true if the date is within daylight saving time, false otherwise.
  */
-export function isDaylightSavingTime(date = new Date()) {
+export function isDaylightSavingTime(date = new Date(), standardOffset) {
+  if (standardOffset) {
+    const localStandardTime = getLocalTimeForOffset(standardOffset, date);
+    const year = localStandardTime.getUTCFullYear();
+    const dstStartDay = nthWeekdayOfMonth(year, 2, 0, 2);
+    const dstEndDay = nthWeekdayOfMonth(year, 10, 0, 1);
+    const localTimestamp = Date.UTC(
+      year,
+      localStandardTime.getUTCMonth(),
+      localStandardTime.getUTCDate(),
+      localStandardTime.getUTCHours(),
+      localStandardTime.getUTCMinutes(),
+      localStandardTime.getUTCSeconds(),
+      localStandardTime.getUTCMilliseconds(),
+    );
+    const dstStart = Date.UTC(year, 2, dstStartDay, 2, 0, 0, 0);
+    const dstEnd = Date.UTC(year, 10, dstEndDay, 2, 0, 0, 0);
+
+    return localTimestamp >= dstStart && localTimestamp < dstEnd;
+  }
+
   const jan = new Date(date.getFullYear(), 0, 1);
   const jul = new Date(date.getFullYear(), 6, 1);
   const stdTimezoneOffset = Math.max(
@@ -68,7 +211,7 @@ export function offsetTieBreaker(timezones, date) {
   if (localHour < 12) {
     return timezones[0];
   } else {
-    return timezones[1];
+    return timezones[timezones.length - 1];
   }
 }
 
@@ -86,33 +229,34 @@ export function offsetTieBreaker(timezones, date) {
  * @returns {boolean} return.isQuietHours - Indicates whether the local time falls outside either TCPA or CRTC quiet hours.
  */
 export function findTimeDetails(offset, date, stateName) {
-  const localTime = new Date(
-    date.getTime() +
-      date.getTimezoneOffset() * 60000 +
-      parseInt(offset.split(':')[0]) * 3600000 +
-      parseInt(offset.split(':')[1]) * 60000,
-  );
-  const localDay = localTime.getDay();
-  const localHour = localTime.getHours();
+  const localTime = getLocalTimeForOffset(offset, date);
+  const localDay = localTime.getUTCDay();
+  const localHour = localTime.getUTCHours();
+  const localMinutes = localHour * 60 + localTime.getUTCMinutes();
   // CRTC Info
   const isWeekend = localDay === 0 || localDay === 6;
   const isCRTCRegion = CRTC_STATES.indexOf(stateName) !== -1;
 
   let timeDetails = {
-    localTimeReadable: localTime.toLocaleTimeString(),
-    localTime24Hour: localTime.toLocaleTimeString('en-US', { hour12: false }),
+    localTimeReadable: formatLocalTimeReadable(localTime),
+    localTime24Hour: formatLocalTime24Hour(localTime),
   };
 
   if (isCRTCRegion) {
+    const startMinutes = isWeekend
+      ? CRTC_QUIET_HOURS.weekends.start * 60
+      : CRTC_QUIET_HOURS.weekdays.start * 60;
+    const endMinutes = isWeekend
+      ? CRTC_QUIET_HOURS.weekends.end * 60
+      : CRTC_QUIET_HOURS.weekdays.end * 60;
+
     if (isWeekend) {
       timeDetails.isCRTCQuietHours = !(
-        localHour >= CRTC_QUIET_HOURS.weekends.start &&
-        localHour < CRTC_QUIET_HOURS.weekends.end
+        localMinutes >= startMinutes && localMinutes < endMinutes
       );
     } else {
       timeDetails.isCRTCQuietHours = !(
-        localHour >= CRTC_QUIET_HOURS.weekdays.start &&
-        localHour < CRTC_QUIET_HOURS.weekdays.end
+        localMinutes >= startMinutes && localMinutes < endMinutes
       );
     }
   } else {
@@ -139,8 +283,10 @@ export function findTimeDetails(offset, date, stateName) {
  * @returns {string} - The formatted timezone offset in the format "±HH:MM".
  */
 export function findTimeFromAreaCode(areaCode, date = new Date()) {
-  let localOffset;
   const stateName = AREA_CODES[areaCode]?.name;
+  const hasMixedDaylightSavings =
+    !!AREA_CODES_WITH_MULTIPLE_DAYLIGHT_SAVINGS[areaCode];
+  const stateTimezones = STATES_WITH_MULTIPLE_TIMEZONES[stateName]?.[areaCode];
   let returnTime = {
     timezoneOffset: null,
     stateHasMultipleTimezones: null,
@@ -166,60 +312,36 @@ export function findTimeFromAreaCode(areaCode, date = new Date()) {
     return returnTime;
   }
 
-  if (
-    STATES_WITH_MULTIPLE_TIMEZONES[stateName] &&
-    STATES_WITH_MULTIPLE_TIMEZONES[stateName][areaCode]
-  ) {
+  if (STATES_WITH_MULTIPLE_TIMEZONES[stateName] && stateTimezones) {
     returnTime.stateHasMultipleTimezones = true;
-
-    if (Array.isArray(STATES_WITH_MULTIPLE_TIMEZONES[stateName][areaCode])) {
-      // A few area codes span multiple timezones.  We need to determine which is more _conservative_ for the provided time.
-      localOffset = offsetTieBreaker(
-        STATES_WITH_MULTIPLE_TIMEZONES[stateName][areaCode],
-        date,
-      );
-      returnTime.areaCodeHasMultipleTimezones = true;
-      returnTime.estimatedTime = true;
-    } else {
-      localOffset = STATES_WITH_MULTIPLE_TIMEZONES[stateName][areaCode];
-      returnTime.areaCodeHasMultipleTimezones = false;
-    }
+    returnTime.areaCodeHasMultipleTimezones = Array.isArray(stateTimezones);
+    returnTime.estimatedTime = Array.isArray(stateTimezones);
   } else {
     returnTime.stateHasMultipleTimezones =
       !!STATES_WITH_MULTIPLE_TIMEZONES[stateName];
     returnTime.areaCodeHasMultipleTimezones = false;
-    localOffset = STATE_TIMEZONES[stateName];
   }
 
-  if (AREA_CODES_WITH_MULTIPLE_DAYLIGHT_SAVINGS[areaCode]) {
-    const offset = parseInt(localOffset.split(':')[0]);
+  const candidateOffsets = getCandidateOffsets(areaCode, stateName, date);
+  const localOffset =
+    candidateOffsets.length > 1
+      ? offsetTieBreaker(candidateOffsets, date)
+      : candidateOffsets[0];
 
-    if (isDaylightSavingTime(date)) {
-      returnTime.daylightSavings = true;
-      // During daylight savings, parts of this area code will be adhering and other parts not.
-      // We'll take the most _conservative_ time within the two options.
-      localOffset = offsetTieBreaker([`${offset + 1}:00`, localOffset], date);
-      returnTime.estimatedTime = true;
-    } else {
-      // Nothing to change - the entire area code is at the same time.
-      returnTime.daylightSavings = false;
-      localOffset = `${offset}:00`;
-    }
-  } else if (!STATES_THAT_DONT_HAVE_DAYLIGHT_SAVINGS.includes(stateName)) {
-    const offset = parseInt(localOffset.split(':')[0]);
+  returnTime.daylightSavings =
+    (hasMixedDaylightSavings ||
+      !STATES_THAT_DONT_HAVE_DAYLIGHT_SAVINGS.includes(stateName)) &&
+    isDaylightSavingTime(date, STATE_TIMEZONES[stateName]);
+  returnTime.estimatedTime =
+    returnTime.estimatedTime ||
+    (hasMixedDaylightSavings && returnTime.daylightSavings) ||
+    candidateOffsets.length > 1;
+  returnTime.timezoneOffset = localOffset || null;
 
-    if (isDaylightSavingTime(date)) {
-      returnTime.daylightSavings = true;
-      localOffset = `${offset + 1}:00`;
-    } else {
-      returnTime.daylightSavings = false;
-      localOffset = `${offset}:00`;
-    }
-  } else {
-    returnTime.daylightSavings = false;
+  if (!localOffset) {
+    return returnTime;
   }
 
-  returnTime.timezoneOffset = formatTimeOffset(localOffset);
   returnTime = {
     ...returnTime,
     ...findTimeDetails(localOffset, date, stateName),

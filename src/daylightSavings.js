@@ -5,7 +5,6 @@ export const STATES_THAT_DONT_HAVE_DAYLIGHT_SAVINGS = [
   'Puerto Rico',
   'Saskatchewan',
   'Virgin Islands',
-  'Yukon, Northwest Territories, and Nunavut',
 ];
 
 // Arizona does not follow Daylight Savings, but the Navajo Nation does.  The
@@ -20,4 +19,5 @@ export const AREA_CODES_WITH_MULTIPLE_DAYLIGHT_SAVINGS = {
   306: 'Saskatchewan',
   474: 'Saskatchewan',
   639: 'Saskatchewan',
+  867: 'Yukon, Northwest Territories, and Nunavut',
 };

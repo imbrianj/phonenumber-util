@@ -279,7 +279,7 @@ There is additional functionality exposed as `export`, but the primary expected 
 
 Returns an object with geographic and time related information for a given region.
 
-_NOTE:_ This is only applicable for United States and Canada.
+_NOTE:_ This is applicable for North American area codes with timezone mappings, including the United States, Canada, Puerto Rico, and the U.S. Virgin Islands.
 
 ```javascript
 import { findTimeFromAreaCode } from '@yext/phonenumber-util/geo';

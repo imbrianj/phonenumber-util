@@ -31,4 +31,5 @@ export const CRTC_STATES = [
   'Quebec',
   'Saskatchewan',
   'Yukon',
+  'Yukon, Northwest Territories, and Nunavut',
 ];

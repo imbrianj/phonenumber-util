@@ -5,22 +5,12 @@ const CANADA = { name: 'Canada', code: 'CA', flag: '🇨🇦' };
 export const AREA_CODES = {
   // Toll Free / Not Geographic
   800: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
-  822: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
   833: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
   844: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
   855: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
   866: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
   877: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
-  880: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
-  881: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
-  882: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
-  883: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
-  884: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
-  885: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
-  886: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
-  887: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
   888: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
-  889: { name: 'Toll-free', region: { name: 'United States', code: 'US' } },
   900: {
     name: 'Premium Call Services',
     region: { name: 'United States', code: 'US' },
@@ -640,8 +630,16 @@ export const AREA_CODES = {
   658: { region: { name: 'Jamaica', code: 'JM', flag: '🇯🇲' } },
   664: { region: { name: 'Montserrat', code: 'MS', flag: '🇲🇸' } },
   670: { region: { name: 'Northern Mariana Islands', code: 'MP', flag: '🇲🇵' } },
-  787: { region: { name: 'Puerto Rico', code: 'PR', flag: '🇵🇷' } },
-  939: { region: { name: 'Puerto Rico', code: 'PR', flag: '🇵🇷' } },
+  787: {
+    name: 'Puerto Rico',
+    code: 'PR',
+    region: { name: 'Puerto Rico', code: 'PR', flag: '🇵🇷' },
+  },
+  939: {
+    name: 'Puerto Rico',
+    code: 'PR',
+    region: { name: 'Puerto Rico', code: 'PR', flag: '🇵🇷' },
+  },
   869: { region: { name: 'Saint Kitts and Nevis', code: 'KN', flag: '🇰🇳' } },
   758: { region: { name: 'Saint Lucia', code: 'LC', flag: '🇱🇨' } },
   784: {
@@ -654,7 +652,11 @@ export const AREA_CODES = {
   721: { region: { name: 'Sint Maarten', code: 'SX', flag: '🇸🇽' } },
   868: { region: { name: 'Trinidad and Tobago', code: 'TT', flag: '🇹🇹' } },
   649: { region: { name: 'Turks and Caicos Islands', code: 'TC', flag: '🇹🇨' } },
-  340: { region: { name: 'U.S. Virgin Islands', code: 'VI', flag: '🇻🇮' } },
+  340: {
+    name: 'Virgin Islands',
+    code: 'VI',
+    region: { name: 'U.S. Virgin Islands', code: 'VI', flag: '🇻🇮' },
+  },
 };
 
 export const REGION_CODES = {

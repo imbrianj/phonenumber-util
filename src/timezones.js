@@ -73,6 +73,7 @@ export const STATE_TIMEZONES = {
   Quebec: '-05:00',
   Saskatchewan: '-06:00',
   Yukon: '-07:00',
+  'Yukon, Northwest Territories, and Nunavut': '-07:00',
 };
 
 // We refer to STATE_TIMEZONES for the default timezone for each state.
@@ -154,5 +155,8 @@ export const STATES_WITH_MULTIPLE_TIMEZONES = {
   'Newfoundland and Labrador': {
     709: ['-03:30', '-04:00'],
     879: ['-03:30', '-04:00'],
+  },
+  'Yukon, Northwest Territories, and Nunavut': {
+    867: ['-07:00', '-06:00', '-05:00'],
   },
 };

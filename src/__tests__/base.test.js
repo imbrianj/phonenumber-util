@@ -61,6 +61,15 @@ describe('Region code mapping', () => {
     expect(getPhoneParts('+1 420 222 3333').formattedNumber).toBeNull();
   });
 
+  it('rejects reserved or non-active NANP area codes', () => {
+    expect(getPhoneParts('8225551234').formattedNumber).toBeNull();
+    expect(getPhoneParts('8805551234').formattedNumber).toBeNull();
+    expect(getPhoneParts('8895551234').formattedNumber).toBeNull();
+    expect(isValidPhoneNumber('8225551234')).toBe(false);
+    expect(isValidPhoneNumber('8805551234')).toBe(false);
+    expect(isValidPhoneNumber('8895551234')).toBe(false);
+  });
+
   it('handles a number is definitely not a phone number', () => {
     expect(getPhoneParts('7/23/2025').formattedNumber).toBeNull();
   });

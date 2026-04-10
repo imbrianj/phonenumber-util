@@ -10,6 +10,7 @@ import {
 import { AREA_CODE_LIST } from '../areaCodeList.js';
 import { AREA_CODES, REGION_CODES } from '../phoneCodes.js';
 import { PHONE_FORMATS } from '../phoneFormats.js';
+import { STATE_TIMEZONES } from '../timezones.js';
 
 import { describe, it, expect } from 'vitest';
 
@@ -417,8 +418,14 @@ describe('Validate that every allow-list area code has matching geo and time inf
         areaCode,
         new Date('2024-07-15T08:00:00'),
       );
-      expect(timezone).toBeDefined();
-      expect(timezone).not.toBeNull();
+      const stateName = AREA_CODES[areaCode]?.name;
+
+      if (stateName && STATE_TIMEZONES[stateName]) {
+        expect(timezone.timezoneOffset).toBeTruthy();
+      } else {
+        expect(timezone).toBeDefined();
+        expect(timezone).not.toBeNull();
+      }
     });
   });
 
@@ -458,6 +465,15 @@ describe('Daylight Savings', () => {
 
     expect(isDaylightSavingTime(daylightSavings)).toBe(true);
     expect(isDaylightSavingTime(notDaylightSavings)).toBe(false);
+  });
+
+  it('should allow DST checks against the target area offset instead of the browser timezone', () => {
+    expect(
+      isDaylightSavingTime(new Date('2024-07-15T15:00:00Z'), '-08:00'),
+    ).toBe(true);
+    expect(
+      isDaylightSavingTime(new Date('2024-12-15T16:00:00Z'), '-08:00'),
+    ).toBe(false);
   });
 });
 
@@ -517,6 +533,20 @@ describe('Provides compliance quiet hours for any given region', () => {
       findTimeDetails('-07:00', new Date('2024-07-20T07:00:00'), 'Alberta')
         .isCRTCQuietHours,
     ).toEqual(true);
+    expect(
+      findTimeDetails(
+        '-05:00',
+        new Date('2024-07-15T21:30:00-05:00'),
+        'Ontario',
+      ).isCRTCQuietHours,
+    ).toEqual(true);
+    expect(
+      findTimeDetails(
+        '-05:00',
+        new Date('2024-07-15T21:29:00-05:00'),
+        'Ontario',
+      ).isCRTCQuietHours,
+    ).toEqual(false);
 
     // Both should have an abstracted general quiet hours value.
     expect(
@@ -559,6 +589,30 @@ describe('Provides general time information for the given phone number (US and C
     expect(
       findTimeFromAreaCode('236', new Date('2024-07-20T08:00:00')),
     ).toEqual(canadianPhone);
+  });
+
+  it('calculates target local time independently of the client timezone', () => {
+    expect(
+      findTimeFromAreaCode('206', new Date('2024-07-15T15:00:00Z')),
+    ).toMatchObject({
+      timezoneOffset: '-07:00',
+      localTime24Hour: '08:00:00',
+      daylightSavings: true,
+      isQuietHours: false,
+    });
+  });
+
+  it('supports half-hour offsets correctly', () => {
+    expect(
+      findTimeDetails(
+        '-03:30',
+        new Date('2024-12-15T12:00:00Z'),
+        'Newfoundland and Labrador',
+      ),
+    ).toMatchObject({
+      localTime24Hour: '08:30:00',
+      isCRTCQuietHours: true,
+    });
   });
 });
 
@@ -607,5 +661,30 @@ describe('Area code region information mapping', () => {
     expect(result.region.flag).toBeDefined();
     expect(result.region.name).toBe('Puerto Rico');
     expect(result.region.code).toBe('PR');
+  });
+
+  it('should provide timezone details for Puerto Rico, U.S. Virgin Islands, and 867', () => {
+    expect(
+      findTimeFromAreaCode('787', new Date('2024-07-15T12:00:00Z')),
+    ).toMatchObject({
+      timezoneOffset: '-04:00',
+      daylightSavings: false,
+      state: { name: 'Puerto Rico', code: 'PR' },
+    });
+    expect(
+      findTimeFromAreaCode('340', new Date('2024-07-15T12:00:00Z')),
+    ).toMatchObject({
+      timezoneOffset: '-04:00',
+      daylightSavings: false,
+      state: { name: 'Virgin Islands', code: 'VI' },
+    });
+    expect(
+      findTimeFromAreaCode('867', new Date('2024-07-15T12:00:00Z')),
+    ).toMatchObject({
+      stateHasMultipleTimezones: true,
+      areaCodeHasMultipleTimezones: true,
+      estimatedTime: true,
+      daylightSavings: true,
+    });
   });
 });
